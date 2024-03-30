@@ -2,45 +2,45 @@ extern crate nalgebra as na;
 
 pub struct Axis6EKF
 {
-    estimation:na::Vector3<f32>,
-    cov:na::Matrix3<f32>,
-    gyro_noise:na::Matrix3<f32>,
-    accel_noise:na::Matrix2<f32>,
-    kalman_gain:na::Matrix3x2<f32>,
+    estimation:na::Vector3<f64>,
+    cov:na::Matrix3<f64>,
+    gyro_noise:na::Matrix3<f64>,
+    accel_noise:na::Matrix2<f64>,
+    kalman_gain:na::Matrix3x2<f64>,
 }
 
 impl Axis6EKF {
-    pub fn new(delta_time:f32)->Axis6EKF
+    pub fn new(delta_time:f64)->Axis6EKF
     {
-        let es_x = na::Vector3::<f32>::new(0.0, 0.0, 0.0);
-        let q = na::Matrix3::<f32>::zeros();
-        let cov = na::Matrix3::<f32>::new(
+        let es_x = na::Vector3::<f64>::new(0.0, 0.0, 0.0);
+        let q = na::Matrix3::<f64>::zeros();
+        let cov = na::Matrix3::<f64>::new(
             0.0174*delta_time*delta_time, 0.0, 0.0,
             0.0, 0.0174*delta_time*delta_time, 0.0,
             0.0, 0.0, 0.0174*delta_time*delta_time);
 
-        let r = na::Matrix2::<f32>::new(
+        let r = na::Matrix2::<f64>::new(
             0.0, 0.0, 
             0.0, 0.0);
 
-        let k = na::Matrix3x2::<f32>::zeros();
+        let k = na::Matrix3x2::<f64>::zeros();
 
         Axis6EKF{estimation:es_x,cov:cov,gyro_noise:q,accel_noise:r, kalman_gain:k}
     }
-    pub fn run_ekf(&mut self,gyro_velocity:na::Vector3<f32>,accel:na::Vector3<f32>,delta_time:f32)->na::Vector3<f32>
+    pub fn run_ekf(&mut self,gyro_velocity:na::Vector3<f64>,accel:na::Vector3<f64>,delta_time:f64)->na::Vector3<f64>
     {
-        let u = na::Vector3::<f32>::new(
+        let u = na::Vector3::<f64>::new(
             gyro_velocity.x*delta_time, 
             gyro_velocity.y*delta_time, 
             gyro_velocity.z*delta_time);
 
-        self.gyro_noise = na::Matrix3::<f32>::new(
+        self.gyro_noise = na::Matrix3::<f64>::new(
             0.0174*delta_time*delta_time, 0.0, 0.0,
             0.0, 0.0174*delta_time*delta_time, 0.0,
             0.0, 0.0, 0.0174*delta_time*delta_time,
         );
 
-        self.accel_noise = na::Matrix2::<f32>::new(
+        self.accel_noise = na::Matrix2::<f64>::new(
             delta_time*delta_time, 0.0,
             0.0, delta_time
         );
@@ -64,13 +64,13 @@ impl Axis6EKF {
 
         self.estimation
     }
-    fn h(&mut self)->na::Matrix2x3<f32>
+    fn h(&mut self)->na::Matrix2x3<f64>
     {
-        na::Matrix2x3::<f32>::new(
+        na::Matrix2x3::<f64>::new(
             1.0, 0.0, 0.0, 
             0.0, 1.0, 0.0)
     }
-    fn calc_jacob(&mut self, input_matrix:na::Vector3<f32>)->na::Matrix3<f32>
+    fn calc_jacob(&mut self, input_matrix:na::Vector3<f64>)->na::Matrix3<f64>
     {
         let cos_roll = self.estimation.x.cos();
         let sin_roll = self.estimation.x.sin();
@@ -83,12 +83,12 @@ impl Axis6EKF {
         let m_31 = input_matrix.y*(cos_roll/cos_pitch) - input_matrix.z*(sin_roll/cos_pitch);
         let m_32 = input_matrix.y*((sin_roll*sin_pitch)/(cos_pitch*cos_pitch))+input_matrix.z*((cos_roll*sin_pitch)/(cos_pitch*cos_pitch));
 
-        na::Matrix3::<f32>::new(
+        na::Matrix3::<f64>::new(
             m_11, m_12, 0.0, 
             m_21, 1.0, 0.0, 
             m_31, m_32, 0.0)
     }
-    fn predict_x(&mut self, input_matrix:na::Vector3<f32>)
+    fn predict_x(&mut self, input_matrix:na::Vector3<f64>)
     {
         let cos_roll = self.estimation.x.cos();
         let sin_roll = self.estimation.x.sin();
@@ -101,25 +101,25 @@ impl Axis6EKF {
         self.estimation.z = self.estimation.z + input_matrix.z + input_matrix.y*(sin_roll/cos_pitch) + input_matrix.z*(cos_roll/cos_pitch);
     }
 
-    fn predict_cov(&mut self, jacob:na::Matrix3<f32>)
+    fn predict_cov(&mut self, jacob:na::Matrix3<f64>)
     {
         let t_jacob = jacob.transpose();
         self.cov = jacob*self.cov*t_jacob + self.gyro_noise;
     }
-    fn update_residual(&mut self, obs:na::Vector2<f32>)->na::Vector2<f32>
+    fn update_residual(&mut self, obs:na::Vector2<f64>)->na::Vector2<f64>
     {
         let res = obs - self.h() * self.estimation;
 
         res
     }
-    fn update_s(&mut self)->na::Matrix2<f32>
+    fn update_s(&mut self)->na::Matrix2<f64>
     {
         let h = self.h();
         let trans_h = h.transpose();
 
         h * self.cov * trans_h + self.accel_noise
     }
-    fn update_kalman_gain(&mut self,s:na::Matrix2<f32>)->na::Matrix3x2<f32>
+    fn update_kalman_gain(&mut self,s:na::Matrix2<f64>)->na::Matrix3x2<f64>
     {
         let h = self.h();
         let t_h = h.transpose();
@@ -129,13 +129,13 @@ impl Axis6EKF {
         k
     }
 
-    fn update_x(&mut self, residual:na::Vector2<f32>)
+    fn update_x(&mut self, residual:na::Vector2<f64>)
     {
         self.estimation = self.estimation + self.kalman_gain * residual;
     }
     fn update_cov(&mut self)
     {
-        let i = na::Matrix3::<f32>::identity();
+        let i = na::Matrix3::<f64>::identity();
         let h = self.h();
 
         self.cov = (i - self.kalman_gain*h) * self.cov
@@ -144,17 +144,17 @@ impl Axis6EKF {
 
 
 
-fn calc_observation_model(accel_x:f32, accel_y:f32, accel_z:f32)->na::Vector2<f32>
+fn calc_observation_model(accel_x:f64, accel_y:f64, accel_z:f64)->na::Vector2<f64>
     {
         let x_ = match accel_z == 0.0 {
             true=>{
                 if accel_y > 0.0
                 {
-                    std::f32::consts::PI / 2.0
+                    std::f64::consts::PI / 2.0
                 }
                 else
                 {
-                    -1.0*std::f32::consts::PI / 2.0
+                    -1.0*std::f64::consts::PI / 2.0
                 }
             },
             false=>(accel_y / accel_z).atan()
@@ -163,17 +163,17 @@ fn calc_observation_model(accel_x:f32, accel_y:f32, accel_z:f32)->na::Vector2<f3
             true=>{
                 if (-1.0*accel_x) > 0.0
                 {
-                    std::f32::consts::PI / 2.0
+                    std::f64::consts::PI / 2.0
                 }
                 else
                 {
-                    -1.0*std::f32::consts::PI / 2.0
+                    -1.0*std::f64::consts::PI / 2.0
                 }
             },
             false=>(-1.0*accel_x) / ((accel_y*accel_y+accel_z*accel_z).sqrt()).atan()
         };
 
-        na::Vector2::<f32>::new(
+        na::Vector2::<f64>::new(
             x_,
             y_
         )
@@ -184,46 +184,46 @@ fn calc_observation_model(accel_x:f32, accel_y:f32, accel_z:f32)->na::Vector2<f3
 
 pub struct Axis9EKF
 {
-    estimation:na::Vector3<f32>,
-    cov:na::Matrix3<f32>,
-    gyro_noise:na::Matrix3<f32>,
-    accel_noise:na::Matrix3<f32>,
-    kalman_gain:na::Matrix3<f32>,
+    estimation:na::Vector3<f64>,
+    cov:na::Matrix3<f64>,
+    gyro_noise:na::Matrix3<f64>,
+    accel_noise:na::Matrix3<f64>,
+    kalman_gain:na::Matrix3<f64>,
 }
 
 impl Axis9EKF {
-    pub fn new(delta_time:f32)->Axis9EKF
+    pub fn new(delta_time:f64)->Axis9EKF
     {
-        let es_x = na::Vector3::<f32>::new(0.0, 0.0, 0.0);
-        let q = na::Matrix3::<f32>::zeros();
-        let cov = na::Matrix3::<f32>::new(
+        let es_x = na::Vector3::<f64>::new(0.0, 0.0, 0.0);
+        let q = na::Matrix3::<f64>::zeros();
+        let cov = na::Matrix3::<f64>::new(
             0.0174*delta_time*delta_time, 0.0, 0.0,
             0.0, 0.0174*delta_time*delta_time, 0.0,
             0.0, 0.0, 0.0174*delta_time*delta_time);
 
-        let r = na::Matrix3::<f32>::new(
+        let r = na::Matrix3::<f64>::new(
             0.0, 0.0, 0.0,
             0.0, 0.0, 0.0,
             0.0, 0.0, 0.0);
 
-        let k = na::Matrix3::<f32>::zeros();
+        let k = na::Matrix3::<f64>::zeros();
 
         Axis9EKF{estimation:es_x,cov:cov,gyro_noise:q,accel_noise:r, kalman_gain:k}
     }
-    pub fn run_ekf(&mut self,gyro_velocity:na::Vector3<f32>,accel:na::Vector3<f32>,magnet:na::Vector3<f32>,delta_time:f32)->na::Vector3<f32>
+    pub fn run_ekf(&mut self,gyro_velocity:na::Vector3<f64>,accel:na::Vector3<f64>,magnet:na::Vector3<f64>,delta_time:f64)->na::Vector3<f64>
     {
-        let u = na::Vector3::<f32>::new(
+        let u = na::Vector3::<f64>::new(
             gyro_velocity.x*delta_time, 
             gyro_velocity.y*delta_time, 
             gyro_velocity.z*delta_time);
 
-        self.gyro_noise = na::Matrix3::<f32>::new(
+        self.gyro_noise = na::Matrix3::<f64>::new(
             0.0174*delta_time*delta_time, 0.0, 0.0,
             0.0, 0.0174*delta_time*delta_time, 0.0,
             0.0, 0.0, 0.0174*delta_time*delta_time,
         );
 
-        self.accel_noise = na::Matrix3::<f32>::new(
+        self.accel_noise = na::Matrix3::<f64>::new(
             delta_time*delta_time, 0.0, 0.0,
             0.0, delta_time*delta_time, 0.0,
             0.0, 0.0, delta_time*delta_time
@@ -248,7 +248,7 @@ impl Axis9EKF {
 
         self.estimation
     }
-    fn calc_jacob(&mut self, input_matrix:na::Vector3<f32>)->na::Matrix3<f32>
+    fn calc_jacob(&mut self, input_matrix:na::Vector3<f64>)->na::Matrix3<f64>
     {
         let cos_roll = self.estimation.x.cos();
         let sin_roll = self.estimation.x.sin();
@@ -261,12 +261,12 @@ impl Axis9EKF {
         let m_31 = input_matrix.y*(cos_roll/cos_pitch) - input_matrix.z*(sin_roll/cos_pitch);
         let m_32 = input_matrix.y*((sin_roll*sin_pitch)/(cos_pitch*cos_pitch))+input_matrix.z*((cos_roll*sin_pitch)/(cos_pitch*cos_pitch));
 
-        na::Matrix3::<f32>::new(
+        na::Matrix3::<f64>::new(
             m_11, m_12, 0.0, 
             m_21, 1.0, 0.0, 
             m_31, m_32, 0.0)
     }
-    fn predict_x(&mut self, input_matrix:na::Vector3<f32>)
+    fn predict_x(&mut self, input_matrix:na::Vector3<f64>)
     {
         let cos_roll = self.estimation.x.cos();
         let sin_roll = self.estimation.x.sin();
@@ -279,22 +279,22 @@ impl Axis9EKF {
         self.estimation.z = self.estimation.z + input_matrix.z + input_matrix.y*(sin_roll/cos_pitch) + input_matrix.z*(cos_roll/cos_pitch);
     }
 
-    fn predict_cov(&mut self, jacob:na::Matrix3<f32>)
+    fn predict_cov(&mut self, jacob:na::Matrix3<f64>)
     {
         let t_jacob = jacob.transpose();
         self.cov = jacob*self.cov*t_jacob + self.gyro_noise;
     }
-    fn update_residual(&mut self, obs:na::Vector3<f32>)->na::Vector3<f32>
+    fn update_residual(&mut self, obs:na::Vector3<f64>)->na::Vector3<f64>
     {
         let res = obs - self.estimation;
 
         res
     }
-    fn update_s(&mut self)->na::Matrix3<f32>
+    fn update_s(&mut self)->na::Matrix3<f64>
     {
         self.cov + self.accel_noise
     }
-    fn update_kalman_gain(&mut self,s:na::Matrix3<f32>)->na::Matrix3<f32>
+    fn update_kalman_gain(&mut self,s:na::Matrix3<f64>)->na::Matrix3<f64>
     {
         let inv_s = s.try_inverse().unwrap();
         let k = self.cov * inv_s;
@@ -302,13 +302,13 @@ impl Axis9EKF {
         k
     }
 
-    fn update_x(&mut self, residual:na::Vector3<f32>)
+    fn update_x(&mut self, residual:na::Vector3<f64>)
     {
         self.estimation = self.estimation + self.kalman_gain * residual;
     }
     fn update_cov(&mut self)
     {
-        let i = na::Matrix3::<f32>::identity();
+        let i = na::Matrix3::<f64>::identity();
 
         self.cov = (i - self.kalman_gain) * self.cov
     }
@@ -316,17 +316,17 @@ impl Axis9EKF {
 
 
 
-fn observation_model(accel_x:f32, accel_y:f32, accel_z:f32, mag_x:f32, mag_y:f32, mag_z:f32)->na::Vector3<f32>
+fn observation_model(accel_x:f64, accel_y:f64, accel_z:f64, mag_x:f64, mag_y:f64, mag_z:f64)->na::Vector3<f64>
     {
         let x_ = match accel_z == 0.0 {
             true=>{
                 if accel_y > 0.0
                 {
-                    std::f32::consts::PI / 2.0
+                    std::f64::consts::PI / 2.0
                 }
                 else
                 {
-                    -1.0*std::f32::consts::PI / 2.0
+                    -1.0*std::f64::consts::PI / 2.0
                 }
             },
             false=>(accel_y / accel_z).atan()
@@ -335,11 +335,11 @@ fn observation_model(accel_x:f32, accel_y:f32, accel_z:f32, mag_x:f32, mag_y:f32
             true=>{
                 if (-1.0*accel_x) > 0.0
                 {
-                    std::f32::consts::PI / 2.0
+                    std::f64::consts::PI / 2.0
                 }
                 else
                 {
-                    -1.0*std::f32::consts::PI / 2.0
+                    -1.0*std::f64::consts::PI / 2.0
                 }
             },
             false=>(-1.0*accel_x) / ((accel_y*accel_y+accel_z*accel_z).sqrt()).atan()
@@ -354,17 +354,17 @@ fn observation_model(accel_x:f32, accel_y:f32, accel_z:f32, mag_x:f32, mag_y:f32
             true=>{
                 if (mag_x*cos_y + mag_y*sin_y*sin_x + mag_z*sin_y*cos_x) > 0.0
                 {
-                    std::f32::consts::PI / 2.0
+                    std::f64::consts::PI / 2.0
                 }
                 else
                 {
-                    -1.0*std::f32::consts::PI / 2.0
+                    -1.0*std::f64::consts::PI / 2.0
                 }
             },
             false=>((mag_x*cos_y + mag_y*sin_y*sin_x + mag_z*sin_y*cos_x) / (mag_y*cos_x - mag_z*sin_x)).atan()
         };
 
-        na::Vector3::<f32>::new(
+        na::Vector3::<f64>::new(
             x_,
             y_,
             z_
