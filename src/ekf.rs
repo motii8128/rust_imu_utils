@@ -235,7 +235,7 @@ impl Axis9EKF {
 
         let _ = self.predict_cov(jacob_f);
 
-        let z = observation_model(accel.x, accel.y, accel.z, magnet.x, magnet.y, magnet.z);
+        let z = observation_model(accel, magnet);
 
         let y_res = self.update_residual(z);
 
@@ -264,7 +264,7 @@ impl Axis9EKF {
         na::Matrix3::<f64>::new(
             m_11, m_12, 0.0, 
             m_21, 1.0, 0.0, 
-            m_31, m_32, 0.0)
+            m_31, m_32, 1.0)
     }
     fn predict_x(&mut self, input_matrix:na::Vector3<f64>)
     {
@@ -316,59 +316,20 @@ impl Axis9EKF {
 
 
 
-fn observation_model(accel_x:f64, accel_y:f64, accel_z:f64, mag_x:f64, mag_y:f64, mag_z:f64)->na::Vector3<f64>
-    {
-        let x_ = match accel_z == 0.0 {
-            true=>{
-                if accel_y > 0.0
-                {
-                    std::f64::consts::PI / 2.0
-                }
-                else
-                {
-                    -1.0*std::f64::consts::PI / 2.0
-                }
-            },
-            false=>(accel_y / accel_z).atan()
-        };
-        let y_ = match (accel_y*accel_y+accel_z*accel_z).sqrt() == 0.0 {
-            true=>{
-                if (-1.0*accel_x) > 0.0
-                {
-                    std::f64::consts::PI / 2.0
-                }
-                else
-                {
-                    -1.0*std::f64::consts::PI / 2.0
-                }
-            },
-            false=>(-1.0*accel_x) / ((accel_y*accel_y+accel_z*accel_z).sqrt()).atan()
-        };
+fn observation_model(accel_:na::Vector3<f64>, mag_:na::Vector3<f64>)->na::Vector3<f64>
+{
+    let mut result = na::Vector3::<f64>::new(0.0, 0.0, 0.0);
 
-        let cos_x = x_.cos();
-        let sin_x = x_.sin();
-        let cos_y = y_.cos();
-        let sin_y= y_.sin();
+    result.x = ((-1.0*accel_.y) / (-1.0*accel_.z)).atan();
 
-        let z_ = match (mag_y*cos_x - mag_z*sin_x) == 0.0 {
-            true=>{
-                if (mag_x*cos_y + mag_y*sin_y*sin_x + mag_z*sin_y*cos_x) > 0.0
-                {
-                    std::f64::consts::PI / 2.0
-                }
-                else
-                {
-                    -1.0*std::f64::consts::PI / 2.0
-                }
-            },
-            false=>((mag_x*cos_y + mag_y*sin_y*sin_x + mag_z*sin_y*cos_x) / (mag_y*cos_x - mag_z*sin_x)).atan()
-        };
+    result.y = (accel_.x / (accel_.y.powi(2) + accel_.z.powi(2)).sqrt()).atan();
 
-        na::Vector3::<f64>::new(
-            x_,
-            y_,
-            z_
-        )
+    let above = mag_.x*result.y.cos() + mag_.y*result.y.sin()*result.x.sin() + mag_.z*result.y.sin()*result.x.cos();
+    let below = mag_.y*result.x.cos() - mag_.z*result.x.sin();
+
+    result.z = (above / below).atan();
+
+    result    
 }
 
 // mag_x*cos_y + mag_y*sin_y*sin_x + mag_z*sin_y*cos_x
