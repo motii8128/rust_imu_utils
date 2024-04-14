@@ -53,12 +53,12 @@ pub fn quaternion_to_xyz(w:f64, x:f64, y:f64, z:f64)->na::Vector3<f64>
 
 pub fn zyx_to_quaternion(euler:na::Vector3<f64>)->na::Quaternion<f64>
 {
-    let sin_x = (x/2.0).sin();
-    let cos_x = (x/2.0).cos();
-    let sin_y = (y/2.0).sin();
-    let cos_y = (y/2.0).cos();
-    let sin_z = (z/2.0).sin();
-    let cos_z = (z/2.0).cos();
+    let sin_x = (euler.x/2.0).sin();
+    let cos_x = (euler.x/2.0).cos();
+    let sin_y = (euler.y/2.0).sin();
+    let cos_y = (euler.y/2.0).cos();
+    let sin_z = (euler.z/2.0).sin();
+    let cos_z = (euler.z/2.0).cos();
 
     na::Quaternion::new(
         sin_x*cos_y*cos_z - cos_x*sin_y*sin_z,
