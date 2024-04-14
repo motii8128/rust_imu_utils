@@ -325,9 +325,32 @@ fn observation_model(accel_:na::Vector3<f64>, mag_:na::Vector3<f64>)->na::Vector
 {
     let mut result = na::Vector3::<f64>::new(0.0, 0.0, 0.0);
 
-    result.x = ((-1.0*accel_.y) / (-1.0*accel_.z)).atan();
-
-    result.y = (accel_.x / (accel_.y.powi(2) + accel_.z.powi(2)).sqrt()).atan();
+    result.x = match accel_.z == 0.0 {
+        true=>{
+            if accel_.y > 0.0
+            {
+                std::f64::consts::PI / 2.0
+            }
+            else
+            {
+                -1.0*std::f64::consts::PI / 2.0
+            }
+        },
+        false=>(accel_.y / accel_.z).atan()
+    };
+    result.y = match (accel_.y*accel_.y+accel_.z*accel_.z).sqrt() == 0.0 {
+        true=>{
+            if (-1.0*accel_.x) > 0.0
+            {
+                std::f64::consts::PI / 2.0
+            }
+            else
+            {
+                -1.0*std::f64::consts::PI / 2.0
+            }
+        },
+        false=>(-1.0*accel_.x) / ((accel_.y*accel_.y+accel_.z*accel_.z).sqrt()).atan()
+    };
 
     let above = mag_.x*result.y.cos() + mag_.y*result.y.sin()*result.x.sin() + mag_.z*result.y.sin()*result.x.cos();
     let below = mag_.y*result.x.cos() - mag_.z*result.x.sin();

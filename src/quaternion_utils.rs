@@ -50,3 +50,20 @@ pub fn quaternion_to_xyz(w:f64, x:f64, y:f64, z:f64)->na::Vector3<f64>
 
     na::Vector3::<f64>::new(x, y, z)
 }
+
+pub fn zyx_to_quaternion(x:f64, y:f64, z:f64)->na::Quaternion<f64>
+{
+    let sin_x = (x/2.0).sin();
+    let cos_x = (x/2.0).cos();
+    let sin_y = (y/2.0).sin();
+    let cos_y = (y/2.0).cos();
+    let sin_z = (z/2.0).sin();
+    let cos_z = (z/2.0).cos();
+
+    na::Quaternion::new(
+        sin_x*cos_y*cos_z - cos_x*sin_y*sin_z,
+        sin_x*cos_y*sin_z + cos_x*sin_y*cos_z,
+        -1.0*sin_x*sin_y*cos_z + cos_x*cos_y*sin_z,
+        sin_x*sin_y*sin_z + cos_x*cos_y*cos_z
+    )
+}
