@@ -2,12 +2,12 @@ extern crate nalgebra as na;
 
 pub fn xyz_to_quaternion(euler:na::Vector3<f64>)->na::Quaternion<f64>
 {
-    let cos_a = (euler.x / 4.0).cos();
-    let cos_b = (euler.y / 4.0).cos();
-    let cos_r = (euler.z / 4.0).cos();
-    let sin_a = (euler.x / 4.0).sin();
-    let sin_b = (euler.y / 4.0).sin();
-    let sin_r = (euler.z / 4.0).sin();
+    let cos_a = (euler.x / 2.0).cos();
+    let cos_b = (euler.y / 2.0).cos();
+    let cos_r = (euler.z / 2.0).cos();
+    let sin_a = (euler.x / 2.0).sin();
+    let sin_b = (euler.y / 2.0).sin();
+    let sin_r = (euler.z / 2.0).sin();
 
     na::Quaternion::<f64>::new(
         cos_a*cos_b*cos_r - sin_a*sin_b*sin_r, 
@@ -51,14 +51,14 @@ pub fn quaternion_to_xyz(w:f64, x:f64, y:f64, z:f64)->na::Vector3<f64>
     na::Vector3::<f64>::new(x, y, z)
 }
 
-pub fn zyx_to_quaternion(euler:na::Vector3<f64>)->na::Quaternion<f64>
+pub fn zyx_to_quaternion(x:f64, y:f64, z:f64)->na::Quaternion<f64>
 {
-    let sin_x = (euler.x/2.0).sin();
-    let cos_x = (euler.x/2.0).cos();
-    let sin_y = (euler.y/2.0).sin();
-    let cos_y = (euler.y/2.0).cos();
-    let sin_z = (euler.z/2.0).sin();
-    let cos_z = (euler.z/2.0).cos();
+    let sin_x = (x/2.0).sin();
+    let cos_x = (x/2.0).cos();
+    let sin_y = (y/2.0).sin();
+    let cos_y = (y/2.0).cos();
+    let sin_z = (z/2.0).sin();
+    let cos_z = (z/2.0).cos();
 
     na::Quaternion::new(
         sin_x*cos_y*cos_z - cos_x*sin_y*sin_z,
